@@ -1,0 +1,10 @@
+services:
+  monitor:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      CPU_ALERT_PERCENT: "85"
+      MEM_ALERT_PERCENT: "85"
+      DISK_ALERT_PERCENT: "90"
+    restart: unless-stopped
