@@ -1,0 +1,55 @@
+[
+  {
+    "name": "disk_full",
+    "metrics": {"cpu_percent": 20, "memory_percent": 40, "disk_percent": 97, "alerts": ["disk usage 97.0% exceeds 90%"]},
+    "logs": [
+      "Nov 12 10:01:02 web-01 nginx[812]: write() failed (28: No space left on device)",
+      "Nov 12 10:01:05 web-01 nginx[812]: open() \"/var/log/nginx/access.log\" failed (28: No space left on device)"
+    ],
+    "expect_priority": ["P1"],
+    "expect_keywords": ["disk"]
+  },
+  {
+    "name": "oom_kill",
+    "metrics": {"cpu_percent": 55, "memory_percent": 96, "disk_percent": 40, "alerts": ["memory usage 96.0% exceeds 85%"]},
+    "logs": [
+      "Nov 12 11:20:00 app-02 kernel: Out of memory: Killed process 4121 (python3)",
+      "Nov 12 11:20:01 app-02 api[4121]: worker exited unexpectedly"
+    ],
+    "expect_priority": ["P1"],
+    "expect_keywords": ["memory"]
+  },
+  {
+    "name": "db_unreachable",
+    "metrics": {"cpu_percent": 15, "memory_percent": 50, "disk_percent": 50, "alerts": []},
+    "logs": [
+      "Nov 12 12:00:01 app-01 billing[300]: ERROR could not connect to db at 10.0.3.15:5432: connection refused",
+      "Nov 12 12:00:11 app-01 billing[300]: ERROR could not connect to db at 10.0.3.15:5432: connection refused",
+      "Nov 12 12:00:21 app-01 billing[300]: ERROR could not connect to db at 10.0.3.15:5432: connection refused",
+      "Nov 12 12:00:31 app-01 billing[300]: ERROR could not connect to db at 10.0.3.15:5432: connection refused",
+      "Nov 12 12:00:41 app-01 billing[300]: ERROR could not connect to db at 10.0.3.15:5432: connection refused"
+    ],
+    "expect_priority": ["P1", "P2"],
+    "expect_keywords": ["connect", "unreachable", "database", "db", "refused"]
+  },
+  {
+    "name": "single_auth_error",
+    "metrics": {"cpu_percent": 10, "memory_percent": 30, "disk_percent": 30, "alerts": []},
+    "logs": [
+      "Nov 12 09:15:00 app-01 reports[77]: GET /export 403 Forbidden for user ops@example.com",
+      "Nov 12 09:15:02 app-01 reports[77]: request completed"
+    ],
+    "expect_priority": ["P3", "P4"],
+    "expect_keywords": ["permission", "access", "forbidden", "403", "auth"]
+  },
+  {
+    "name": "healthy",
+    "metrics": {"cpu_percent": 5, "memory_percent": 35, "disk_percent": 30, "alerts": []},
+    "logs": [
+      "Nov 12 08:00:00 web-01 nginx[812]: GET /health 200",
+      "Nov 12 08:00:30 web-01 nginx[812]: GET /health 200"
+    ],
+    "expect_priority": ["P4"],
+    "expect_keywords": ["healthy", "no ", "none", "normal"]
+  }
+]
