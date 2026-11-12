@@ -127,12 +127,13 @@ def build_prompt(metrics: dict, logs: list[str]) -> tuple[str, int]:
 RETRYABLE_STATUS = {429, 500, 502, 503, 504}  # rate limit / overloaded / transient
 
 
-def ask_llm(prompt: str, timeout: float = 60, retries: int = 3, backoff: float = 2.0) -> str:
+def ask_llm(prompt: str, timeout: float = 15, retries: int = 1, backoff: float = 2.0) -> str:
     """Call Google Gemini and return the raw text reply.
 
-    Retries rate-limit, overload and timeout errors with exponential backoff
-    (2s, 4s, 8s). Raises after the last attempt, or immediately on other errors
-    such as a bad key (401/403) or unknown model (404).
+    Retries rate-limit, overload and timeout errors with exponential backoff.
+    Raises after the last attempt, or immediately on other errors such as a bad
+    key (401/403) or unknown model (404). Defaults are short because /analyze is
+    a live API request; batch jobs like scripts/eval_llm.py pass larger values.
     """
     key = os.environ["GEMINI_API_KEY"]
     model = os.getenv("GEMINI_MODEL", "gemini-3.8-flash")
