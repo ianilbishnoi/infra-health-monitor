@@ -2,8 +2,8 @@
 
 A small FastAPI service that reports host health (CPU, memory, disk, load), raises threshold alerts,
 and turns metrics + logs into an ITSM-style incident ticket with an **AIOps assistant** (LLM with a
-rule-based fallback). It is containerized with Docker, provisioned on AWS with **Terraform**, runs on
-**Kubernetes**, and is tested and shipped by **GitHub Actions**.
+rule-based fallback). It is containerized with Docker, has been deployed to AWS EC2 (see DEPLOYMENT.md),
+has Terraform and Kubernetes definitions that CI validates and tests, and is shipped by **GitHub Actions**.
 
 **Stack:** Python, FastAPI, psutil, Docker, Terraform, AWS EC2, Kubernetes (kind), GitHub Actions,
 GitHub Container Registry, Google Gemini API
