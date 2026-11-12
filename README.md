@@ -44,7 +44,7 @@ If `metrics` is omitted, the live `/metrics` values are used.
 2. **Rule-based triage:** deterministic priority and likely cause from alerts and log patterns. It always runs,
    so the service works with no API key and never depends on the LLM being up.
 3. **LLM triage (optional):** if `GEMINI_API_KEY` is set, the redacted evidence is sent to Google Gemini with a
-   prompt that asks for strict JSON and forbids inventing facts (`GEMINI_MODEL`, default `gemini-2.5-flash`).
+   prompt that asks for strict JSON and forbids inventing facts (`GEMINI_MODEL`, default `gemini-3.8-flash`).
 4. **Validation and fallback:** the reply must parse as JSON, contain every ticket field and use P1-P4;
    otherwise, or on any API error, the rule-based ticket is returned with a `fallback_reason`.
 
