@@ -17,6 +17,7 @@ jobs:
       - run: pip install -r requirements-dev.txt
       - run: pytest -q
       - name: LLM evaluation (runs only if the GEMINI_API_KEY secret is set)
+        timeout-minutes: 10
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: python scripts/eval_llm.py
