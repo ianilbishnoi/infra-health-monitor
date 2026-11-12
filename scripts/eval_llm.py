@@ -37,7 +37,7 @@ def main() -> int:
         rules_ok = score(aiops.rule_based(case["metrics"], case["logs"]), case)
         prompt, _ = aiops.build_prompt(case["metrics"], case["logs"])
         try:
-            ticket = aiops.validate(aiops.ask_llm(prompt))
+            ticket = aiops.validate(aiops.ask_llm(prompt, timeout=60, retries=3))
         except urllib.error.HTTPError as exc:  # show Google's reason (never contains the key)
             detail = exc.read().decode(errors="replace")[:300].replace("\n", " ")
             ticket, note = None, f"HTTP {exc.code}: {detail}"
