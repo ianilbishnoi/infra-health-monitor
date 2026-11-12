@@ -1,0 +1,13 @@
+#!/bin/bash
+# Rendered by Terraform templatefile(); runs once on first boot.
+exec > >(tee /var/log/user-data.log | logger -t user-data -s 2>/dev/console) 2>&1
+dnf install -y docker git
+systemctl enable --now docker
+git clone ${repo_url} /opt/app
+cd /opt/app
+docker build -t infra-health-monitor .
+docker run -d --name monitor --restart unless-stopped -p 80:8000 \
+  -e GEMINI_API_KEY='${gemini_api_key}' \
+  infra-health-monitor
+sleep 10; curl -s localhost/health
+echo USERDATA_DONE
