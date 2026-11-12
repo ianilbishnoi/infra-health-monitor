@@ -7,4 +7,5 @@ services:
       CPU_ALERT_PERCENT: "85"
       MEM_ALERT_PERCENT: "85"
       DISK_ALERT_PERCENT: "90"
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}   # optional: enables LLM triage on /analyze
     restart: unless-stopped
