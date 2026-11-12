@@ -93,3 +93,53 @@ def test_analyze_endpoint_uses_live_metrics(monkeypatch):
     monkeypatch.delenv("GEMINI_API_KEY", raising=False)
     r = client.post("/analyze", json={"logs": []})
     assert r.status_code == 200 and r.json()["ticket"]["priority"] in aiops.PRIORITIES
+
+
+# ------------------------------------------------------------- retry logic
+class _FakeResp:
+    def __init__(self, text):
+        self._body = json.dumps({"candidates": [{"content": {"parts": [{"text": text}]}}]}).encode()
+
+    def read(self, *a):
+        return self._body
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *a):
+        return False
+
+
+def _http_error(code):
+    import io
+    import urllib.error
+    return urllib.error.HTTPError("u", code, "err", {}, io.BytesIO(b"{}"))
+
+
+def test_ask_llm_retries_overload_then_succeeds(monkeypatch):
+    calls = []
+
+    def fake_urlopen(req, timeout):
+        calls.append(1)
+        if len(calls) < 3:
+            raise _http_error(503)
+        return _FakeResp(GOOD)
+
+    monkeypatch.setenv("GEMINI_API_KEY", "test")
+    monkeypatch.setattr(aiops.urllib.request, "urlopen", fake_urlopen)
+    assert aiops.ask_llm("p", backoff=0) == GOOD
+    assert len(calls) == 3
+
+
+def test_ask_llm_does_not_retry_auth_error(monkeypatch):
+    calls = []
+
+    def fake_urlopen(req, timeout):
+        calls.append(1)
+        raise _http_error(401)
+
+    monkeypatch.setenv("GEMINI_API_KEY", "test")
+    monkeypatch.setattr(aiops.urllib.request, "urlopen", fake_urlopen)
+    with pytest.raises(aiops.urllib.error.HTTPError):
+        aiops.ask_llm("p", backoff=0)
+    assert len(calls) == 1
