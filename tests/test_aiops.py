@@ -127,7 +127,7 @@ def test_ask_llm_retries_overload_then_succeeds(monkeypatch):
 
     monkeypatch.setenv("GEMINI_API_KEY", "test")
     monkeypatch.setattr(aiops.urllib.request, "urlopen", fake_urlopen)
-    assert aiops.ask_llm("p", backoff=0) == GOOD
+    assert aiops.ask_llm("p", retries=3, backoff=0) == GOOD
     assert len(calls) == 3
 
 
@@ -141,5 +141,5 @@ def test_ask_llm_does_not_retry_auth_error(monkeypatch):
     monkeypatch.setenv("GEMINI_API_KEY", "test")
     monkeypatch.setattr(aiops.urllib.request, "urlopen", fake_urlopen)
     with pytest.raises(aiops.urllib.error.HTTPError):
-        aiops.ask_llm("p", backoff=0)
+        aiops.ask_llm("p", retries=3, backoff=0)
     assert len(calls) == 1
