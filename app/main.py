@@ -4,6 +4,7 @@ Endpoints
   GET /health   liveness probe (used by Docker HEALTHCHECK and load balancers)
   GET /metrics  CPU, memory, disk, load and threshold-based alerts
   GET /info     host and runtime details
+  POST /analyze AIOps: turn metrics + log lines into an ITSM-style incident ticket
 """
 import os
 import platform
@@ -12,10 +13,13 @@ import time
 
 import psutil
 from fastapi import FastAPI
+from pydantic import BaseModel, Field
+
+from app.aiops import analyze
 
 START_TIME = time.time()
 
-app = FastAPI(title="Infra Health Monitor", version="1.0.0")
+app = FastAPI(title="Infra Health Monitor", version="1.1.0")
 
 
 def _threshold(name: str, default: float) -> float:
@@ -46,6 +50,10 @@ def health() -> dict:
 
 @app.get("/metrics")
 def metrics() -> dict:
+    return collect_metrics()
+
+
+def collect_metrics() -> dict:
     cpu = psutil.cpu_percent(interval=0.2)
     vm = psutil.virtual_memory()
     disk = psutil.disk_usage("/")
@@ -70,3 +78,15 @@ def info() -> dict:
         "python": platform.python_version(),
         "cpu_count": psutil.cpu_count(),
     }
+
+
+class AnalyzeRequest(BaseModel):
+    logs: list[str] = Field(default_factory=list, max_length=500, description="Recent log lines")
+    metrics: dict | None = Field(default=None, description="Metrics to analyse; live /metrics if omitted")
+    use_llm: bool | None = Field(default=None, description="Force LLM on/off; default = on if GEMINI_API_KEY is set")
+
+
+@app.post("/analyze")
+def analyze_incident(req: AnalyzeRequest) -> dict:
+    """Redact sensitive data, triage the evidence and return an incident ticket."""
+    return analyze(req.metrics or collect_metrics(), req.logs, use_llm=req.use_llm)
