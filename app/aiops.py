@@ -125,7 +125,7 @@ def build_prompt(metrics: dict, logs: list[str]) -> tuple[str, int]:
 def ask_llm(prompt: str, timeout: float = 20) -> str:
     """Call Google Gemini and return the raw text reply. Raises on any failure."""
     key = os.environ["GEMINI_API_KEY"]
-    model = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
+    model = os.getenv("GEMINI_MODEL", "gemini-3.8-flash")
     url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
     payload = {
         "contents": [{"parts": [{"text": prompt}]}],
