@@ -11,6 +11,7 @@ scored on the same cases so the two can be compared.
 import json
 import os
 import sys
+import urllib.error
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
@@ -37,8 +38,11 @@ def main() -> int:
         prompt, _ = aiops.build_prompt(case["metrics"], case["logs"])
         try:
             ticket = aiops.validate(aiops.ask_llm(prompt))
+        except urllib.error.HTTPError as exc:  # show Google's reason (never contains the key)
+            detail = exc.read().decode(errors="replace")[:300].replace("\n", " ")
+            ticket, note = None, f"HTTP {exc.code}: {detail}"
         except Exception as exc:  # report, don't crash the whole run
-            ticket, note = None, f"error: {type(exc).__name__}"
+            ticket, note = None, f"error: {type(exc).__name__}: {exc}"
         else:
             note = f"{ticket['priority']} / {ticket['title']}" if ticket else "invalid output"
         llm_ok = score(ticket, case)
