@@ -13,6 +13,8 @@ from __future__ import annotations
 import json
 import os
 import re
+import time
+import urllib.error
 import urllib.request
 
 PRIORITIES = ("P1", "P2", "P3", "P4")
@@ -122,8 +124,16 @@ def build_prompt(metrics: dict, logs: list[str]) -> tuple[str, int]:
     return PROMPT_TEMPLATE.format(metrics=clean_metrics, logs=clean_logs or "(none)"), n_logs + n_metrics
 
 
-def ask_llm(prompt: str, timeout: float = 20) -> str:
-    """Call Google Gemini and return the raw text reply. Raises on any failure."""
+RETRYABLE_STATUS = {429, 500, 502, 503, 504}  # rate limit / overloaded / transient
+
+
+def ask_llm(prompt: str, timeout: float = 60, retries: int = 3, backoff: float = 2.0) -> str:
+    """Call Google Gemini and return the raw text reply.
+
+    Retries rate-limit, overload and timeout errors with exponential backoff
+    (2s, 4s, 8s). Raises after the last attempt, or immediately on other errors
+    such as a bad key (401/403) or unknown model (404).
+    """
     key = os.environ["GEMINI_API_KEY"]
     model = os.getenv("GEMINI_MODEL", "gemini-3.8-flash")
     url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
@@ -131,14 +141,24 @@ def ask_llm(prompt: str, timeout: float = 20) -> str:
         "contents": [{"parts": [{"text": prompt}]}],
         "generationConfig": {"temperature": 0.2, "responseMimeType": "application/json"},
     }
-    req = urllib.request.Request(
-        url,
-        data=json.dumps(payload).encode(),
-        headers={"Content-Type": "application/json", "x-goog-api-key": key},
-    )
-    with urllib.request.urlopen(req, timeout=timeout) as resp:
-        body = json.load(resp)
-    return body["candidates"][0]["content"]["parts"][0]["text"]
+    for attempt in range(retries + 1):
+        req = urllib.request.Request(
+            url,
+            data=json.dumps(payload).encode(),
+            headers={"Content-Type": "application/json", "x-goog-api-key": key},
+        )
+        try:
+            with urllib.request.urlopen(req, timeout=timeout) as resp:
+                body = json.load(resp)
+            return body["candidates"][0]["content"]["parts"][0]["text"]
+        except urllib.error.HTTPError as exc:
+            if exc.code not in RETRYABLE_STATUS or attempt == retries:
+                raise
+        except (TimeoutError, urllib.error.URLError):
+            if attempt == retries:
+                raise
+        time.sleep(backoff * 2**attempt)
+    raise RuntimeError("unreachable")
 
 
 # ------------------------------------------------------------- 4. validation
